@@ -722,6 +722,7 @@ export default function GitHubConnection() {
           <div className="mt-6 border-t border-bolt-elements-borderColor dark:border-bolt-elements-borderColor pt-6">
             <div className="flex items-center gap-4 p-4 bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 rounded-lg mb-4">
               <img
+                loading="lazy"
                 src={connection.user.avatar_url}
                 alt={connection.user.login}
                 className="w-12 h-12 rounded-full border-2 border-bolt-elements-item-contentAccent dark:border-bolt-elements-item-contentAccent"

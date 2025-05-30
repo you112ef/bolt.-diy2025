@@ -27,6 +27,10 @@ import { logStore } from '~/lib/stores/logs';
 import { streamingState } from '~/lib/stores/streaming';
 import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
+import { isOnline as isOnlineStore } from '~/lib/stores/connectivity'; // Import connectivity store
+import { providersStore } from '~/lib/stores/settings'; // To check LocalLLaMA config
+import { startLocalLlamaServer, stopLocalLlamaServer, getLocalLlamaServerStatus } from '~/lib/services/local-llm-service'; // Import local LLM service
+import { customPromptStore } from '~/lib/stores/customPrompt'; // Import custom prompt store
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -137,10 +141,15 @@ export const ChatImpl = memo(
       const savedModel = Cookies.get('selectedModel');
       return savedModel || DEFAULT_MODEL;
     });
-    const [provider, setProvider] = useState(() => {
-      const savedProvider = Cookies.get('selectedProvider');
-      return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
+  const [provider, setProvider] = useState<ProviderInfo>(() => { // Ensure ProviderInfo type
+    const savedProviderName = Cookies.get('selectedProvider');
+    const foundProvider = PROVIDER_LIST.find((p) => p.name === savedProviderName);
+    return (foundProvider || DEFAULT_PROVIDER) as ProviderInfo;
     });
+
+  const isOnline = useStore(isOnlineStore);
+  const previousOnlineProviderRef = useRef<{ provider: ProviderInfo; model: string } | null>(null);
+
 
     const { showChat } = useStore(chatStore);
 
@@ -163,7 +172,15 @@ export const ChatImpl = memo(
       setData,
     } = useChat({
       api: '/api/chat',
-      body: {
+      body: { // Note: body is a static object. To make it dynamic with customPrompt, it needs to be a function or updated reactively.
+        // This is a simplified approach. A more robust way might involve updating body via a function if useChat supports it,
+        // or by passing customPrompt in the `append` options if that merges into the body sent to the API.
+        // For now, we'll modify it in the /api/chat route after it's sent.
+        // To send it from client, we'd ideally do this (if useChat's body can be a function or updated):
+        // customPrompt: customPromptStore.get(), // This won't update reactively here.
+        // The alternative is to add it to each `append` call's options if possible, or handle purely server-side.
+        // Let's assume for now we will fetch it server-side or it's passed via append's options.
+        // For this subtask, I will ensure it's part of the `append` call.
         apiKeys,
         files,
         promptId,
@@ -424,35 +441,41 @@ export const ChatImpl = memo(
 
       if (modifiedFiles !== undefined) {
         const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
+        append(
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`,
+              },
+              ...imageDataList.map((imageData) => ({
+                type: 'image',
+                image: imageData,
+              })),
+            ] as any,
+          },
+          { data: { customPrompt: customPromptStore.get() } } // Send customPrompt via append options
+        );
 
         workbenchStore.resetAllFileModifications();
       } else {
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
+        append(
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
+              },
+              ...imageDataList.map((imageData) => ({
+                type: 'image',
+                image: imageData,
+              })),
+            ] as any,
+          },
+          { data: { customPrompt: customPromptStore.get() } } // Send customPrompt via append options
+        );
       }
 
       setInput('');
@@ -485,6 +508,75 @@ export const ChatImpl = memo(
       }, 1000),
       [],
     );
+
+    // Effect for handling online/offline status changes
+    useEffect(() => {
+      const localLlamaProvider = PROVIDER_LIST.find(p => p.name === 'LocalLLaMA') as ProviderInfo | undefined;
+
+      if (!localLlamaProvider) {
+        console.warn('LocalLLaMA provider not found in PROVIDER_LIST.');
+        return;
+      }
+
+      if (!isOnline) {
+        if (provider.name !== 'LocalLLaMA') {
+          // Store current online provider and model
+          previousOnlineProviderRef.current = { provider, model };
+
+          handleProviderChange(localLlamaProvider);
+          // Assuming staticModels is not empty and has a valid model
+          if (localLlamaProvider.staticModels && localLlamaProvider.staticModels.length > 0) {
+            handleModelChange(localLlamaProvider.staticModels[0].name);
+          } else {
+            // Fallback if staticModels is empty - this case should be handled by provider definition
+            console.error('LocalLLaMA provider has no static models defined.');
+            handleModelChange(''); // Or some default placeholder model name
+          }
+          toast.info('Internet offline. Switched to Local LLaMA.');
+
+          // Check if Local LLaMA is configured
+          const allProviderSettings = providersStore.get();
+          const localLlamaSettings = allProviderSettings['LocalLLaMA']?.settings;
+          if (!localLlamaSettings?.modelPath || !localLlamaSettings?.serverPath) {
+            toast.warn('Local LLaMA is not fully configured (server or model path missing). Please check Settings.');
+          } else {
+            // Attempt to start local server
+            startLocalLlamaServer().catch(err => {
+              toast.error(`Failed to start Local LLaMA server: ${err.message}`);
+              console.error("Failed to start Local LLaMA server:", err);
+              // Optionally, switch back to a default online provider if start fails critically
+            });
+          }
+        } else { // Already using LocalLLaMA
+          toast.info('Using Local LLaMA (Offline).');
+          // Ensure server is running if it's supposed to be
+          if (!getLocalLlamaServerStatus().isRunning) {
+            const localLlamaSettings = providersStore.get()['LocalLLaMA']?.settings;
+            if (localLlamaSettings?.modelPath && localLlamaSettings?.serverPath) {
+              startLocalLlamaServer().catch(err => {
+                toast.error(`Local LLaMA server was not running. Start attempt failed: ${err.message}`);
+              });
+            }
+          }
+        }
+      } else { // isOnline is true
+        if (provider.name === 'LocalLLaMA') {
+          toast.success('Internet connection restored. Still using Local LLaMA.');
+          // User can manually switch to an online provider if desired.
+          // Consider stopping local server if user switches away from LocalLLaMA and it's not needed.
+          // For now, server keeps running once started until app closes or explicitly stopped.
+        } else if (previousOnlineProviderRef.current && provider.name === previousOnlineProviderRef.current.provider.name) {
+          // Switched back to the original online provider
+          toast.dismiss(); // Dismiss any persistent offline messages
+          console.log("Switched back to online provider. Consider stopping local server if not needed.");
+          // stopLocalLlamaServer(); // Or implement a more nuanced stop logic
+          previousOnlineProviderRef.current = null;
+        } else {
+           // If already on a different online provider
+          toast.dismiss();
+        }
+      }
+    }, [isOnline, provider, model, handleProviderChange, handleModelChange]); // Dependencies updated
 
     useEffect(() => {
       const storedApiKeys = Cookies.get('apiKeys');

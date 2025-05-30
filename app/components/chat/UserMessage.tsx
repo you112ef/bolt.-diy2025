@@ -21,6 +21,7 @@ export function UserMessage({ content }: UserMessageProps) {
           {textContent && <Markdown html>{textContent}</Markdown>}
           {images.map((item, index) => (
             <img
+              loading="lazy"
               key={index}
               src={item.image}
               alt={`Image ${index + 1}`}

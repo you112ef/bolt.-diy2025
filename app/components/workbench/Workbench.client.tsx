@@ -93,7 +93,7 @@ const FileModifiedDropdown = memo(
           {({ open }: { open: boolean }) => (
             <>
               <Popover.Button className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors text-bolt-elements-item-contentDefault">
-                <span>File Changes</span>
+                <span className="hidden sm:inline">File Changes</span>
                 {hasChanges && (
                   <span className="w-5 h-5 rounded-full bg-accent-500/20 text-accent-500 text-xs flex items-center justify-center border border-accent-500/30">
                     {modifiedFiles.length}
@@ -393,12 +393,12 @@ export const Workbench = memo(
                         }}
                       >
                         <div className="i-ph:terminal" />
-                        Toggle Terminal
+                        <span className="hidden sm:inline">Toggle Terminal</span>
                       </PanelHeaderButton>
                       <DropdownMenu.Root>
                         <DropdownMenu.Trigger className="text-sm flex items-center gap-1 text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed">
                           <div className="i-ph:box-arrow-up" />
-                          Sync & Export
+                          <span className="hidden sm:inline">Sync & Export</span>
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content
                           className={classNames(

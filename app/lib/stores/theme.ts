@@ -1,7 +1,7 @@
 import { atom } from 'nanostores';
 import { logStore } from './logs';
 
-export type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light' | 'oled'; // Added 'oled'
 
 export const kTheme = 'bolt_theme';
 
@@ -26,7 +26,15 @@ function initStore() {
 
 export function toggleTheme() {
   const currentTheme = themeStore.get();
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  let newTheme: Theme;
+
+  if (currentTheme === 'light') {
+    newTheme = 'dark';
+  } else if (currentTheme === 'dark') {
+    newTheme = 'oled';
+  } else { // currentTheme === 'oled'
+    newTheme = 'light';
+  }
 
   // Update the theme store
   themeStore.set(newTheme);

@@ -37,20 +37,47 @@ function parseCookies(cookieHeader: string): Record<string, string> {
 }
 
 async function chatAction({ context, request }: ActionFunctionArgs) {
-  const { messages, files, promptId, contextOptimization, supabase } = await request.json<{
+  const requestBody = await request.json<{
     messages: Messages;
-    files: any;
-    promptId?: string;
-    contextOptimization: boolean;
-    supabase?: {
-      isConnected: boolean;
-      hasSelectedProject: boolean;
-      credentials?: {
-        anonKey?: string;
-        supabaseUrl?: string;
-      };
+    files: any; // Corresponds to 'data.files' from useChat body
+    promptId?: string; // Corresponds to 'data.promptId'
+    contextOptimization: boolean; // Corresponds to 'data.contextOptimization'
+    supabase?: { /* ... */ }; // Corresponds to 'data.supabase'
+    // We added 'customPrompt' to the data field in append options
+    data?: { 
+      customPrompt?: string;
+      // Other potential fields from useChat's body.files, etc. might be nested here
+      // For now, assuming files, promptId, contextOptimization, supabase are top-level in the final body
+      // due to how useChat merges body and options.data. If they are nested under `data`,
+      // then access them as requestBody.data.files, etc.
+      // Let's assume the Vercel SDK merges `options.data` into the top-level body.
     };
+    // If `customPrompt` is directly in the root of the body due to merging:
+    customPrompt?: string; 
   }>();
+
+  let messages = requestBody.messages;
+  const files = requestBody.files;
+  const promptId = requestBody.promptId;
+  const contextOptimization = requestBody.contextOptimization;
+  const supabase = requestBody.supabase;
+  // Extract customPrompt - it could be at root or under 'data' depending on SDK version/behavior
+  const customPrompt = requestBody.customPrompt || requestBody.data?.customPrompt;
+
+
+  if (customPrompt && customPrompt.trim() !== "") {
+    const systemMessage: Messages[0] = { 
+      id: generateId(), // Or a fixed ID
+      role: 'system', 
+      content: customPrompt.trim() 
+    };
+    // Prepend or replace existing system message
+    if (messages.length > 0 && messages[0].role === 'system') {
+      messages[0] = systemMessage; // Replace existing
+    } else {
+      messages = [systemMessage, ...messages]; // Prepend new
+    }
+  }
 
   const cookieHeader = request.headers.get('Cookie');
   const apiKeys = JSON.parse(parseCookies(cookieHeader || '').apiKeys || '{}');

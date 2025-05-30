@@ -68,13 +68,26 @@ const getInitialProviderSettings = (): ProviderSetting => {
 
   // Start with default settings
   PROVIDER_LIST.forEach((provider) => {
+    const isLocalProvider = LOCAL_PROVIDERS.includes(provider.name) || provider.name === 'LocalLLaMA';
     initialSettings[provider.name] = {
       ...provider,
       settings: {
-        // Local providers should be disabled by default
-        enabled: !LOCAL_PROVIDERS.includes(provider.name),
+        enabled: !isLocalProvider, // General rule: disable local providers by default
       },
     };
+
+    // Special handling for LocalLLaMA defaults
+    if (provider.name === 'LocalLLaMA') {
+      initialSettings[provider.name].settings = {
+        ...initialSettings[provider.name].settings,
+        enabled: true, // Enable LocalLLaMA by default for discoverability
+        serverPath: '', // Placeholder, user must configure
+        modelPath: '',  // Placeholder, user must configure
+        gpuLayers: -1,  // -1 for auto/default, common in llama.cpp
+        threads: Math.max(1, Math.floor(navigator.hardwareConcurrency / 2) || 2), // Sensible default
+        customName: 'Local Server (llama.cpp)', // Default display name
+      };
+    }
   });
 
   // Only try to load from localStorage in the browser

@@ -80,6 +80,7 @@ export default function ProfileTab() {
             >
               {profile.avatar ? (
                 <img
+                  loading="lazy"
                   src={profile.avatar}
                   alt="Profile"
                   className={classNames(

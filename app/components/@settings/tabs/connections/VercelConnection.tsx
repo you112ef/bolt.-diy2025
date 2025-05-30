@@ -79,6 +79,7 @@ export default function VercelConnection() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img
+              loading="lazy"
               className="w-5 h-5 dark:invert"
               height="24"
               width="24"
@@ -172,6 +173,7 @@ export default function VercelConnection() {
               <pre className="hidden">{JSON.stringify(connection.user, null, 2)}</pre>
 
               <img
+                loading="lazy"
                 src={`https://vercel.com/api/www/avatar?u=${connection.user?.username || connection.user?.user?.username}`}
                 referrerPolicy="no-referrer"
                 crossOrigin="anonymous"

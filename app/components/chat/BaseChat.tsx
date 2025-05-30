@@ -43,6 +43,12 @@ import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
+import { CustomPromptInput } from './CustomPromptInput';
+import { customPromptStore, setCustomPrompt, clearCustomPrompt } from '~/lib/stores/customPrompt';
+import React, { Suspense, lazy } from 'react'; // Added React, Suspense, lazy for ExpoQrModal
+
+// Lazy load ExpoQrModal
+const ExpoQrModal = lazy(() => import('~/components/workbench/ExpoQrModal'));
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -406,9 +412,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
                 <ScrollToBottom />
                 {progressAnnotations && <ProgressCompilation data={progressAnnotations} />}
+                {/* Custom Prompt Input Area */}
+                <ClientOnly>
+                  {() => {
+                    const currentCustomPrompt = useStore(customPromptStore);
+                    return (
+                      <CustomPromptInput
+                        initialPrompt={currentCustomPrompt}
+                        onPromptSubmit={(newPrompt) => {
+                          setCustomPrompt(newPrompt);
+                          toast.success('Custom prompt applied.');
+                        }}
+                        onPromptClear={() => {
+                          clearCustomPrompt();
+                          toast.info('Custom prompt cleared.');
+                        }}
+                        isPromptActive={!!currentCustomPrompt}
+                        className="w-full max-w-chat mx-auto"
+                      />
+                    );
+                  }}
+                </ClientOnly>
                 <div
                   className={classNames(
-                    'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
+                    'relative bg-bolt-elements-background-depth-2 p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt mt-2', // Added mt-2 for spacing
 
                     /*
                      * {
@@ -629,14 +656,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </IconButton>
                       </div>
                       {input.length > 3 ? (
-                        <div className="text-xs text-bolt-elements-textTertiary">
+                        <div className="text-xs text-bolt-elements-textTertiary hidden sm:block"> {/* Hide on < sm screens */}
                           Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd>{' '}
                           + <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd>{' '}
                           a new line
                         </div>
                       ) : null}
                       <SupabaseConnection />
-                      <ExpoQrModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
+                      {qrModalOpen && ( // Conditionally render Suspense and ExpoQrModal
+                        <Suspense fallback={<div>Loading QR Modal...</div>}>
+                          <ExpoQrModal open={qrModalOpen} onClose={() => setQrModalOpen(false)} />
+                        </Suspense>
+                      )}
                     </div>
                   </div>
                 </div>

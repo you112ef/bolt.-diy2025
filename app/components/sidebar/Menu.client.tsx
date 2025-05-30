@@ -1,9 +1,10 @@
 import { motion, type Variants } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, Suspense, lazy } from 'react';
 import { toast } from 'react-toastify';
-import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { Dialog, DialogRoot } from '~/components/ui/Dialog';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { ControlPanel } from '~/components/@settings/core/ControlPanel';
+// import { ControlPanel } from '~/components/@settings/core/ControlPanel'; // Eager import removed
+const ControlPanel = lazy(() => import('~/components/@settings/core/ControlPanel')); // Lazy import
 import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem, useChatHistory } from '~/lib/persistence';
@@ -11,30 +12,11 @@ import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
+import { useViewport } from '~/lib/hooks'; // Import useViewport
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';
-
-const menuVariants = {
-  closed: {
-    opacity: 0,
-    visibility: 'hidden',
-    left: '-340px',
-    transition: {
-      duration: 0.2,
-      ease: cubicEasingFn,
-    },
-  },
-  open: {
-    opacity: 1,
-    visibility: 'initial',
-    left: 0,
-    transition: {
-      duration: 0.2,
-      ease: cubicEasingFn,
-    },
-  },
-} satisfies Variants;
+import { sidebarOpen, setSidebarOpen, toggleSidebar } from '~/lib/stores/sidebar'; // Import sidebar store
 
 type DialogContent =
   | { type: 'delete'; item: ChatHistoryItem }
@@ -67,12 +49,34 @@ export const Menu = () => {
   const { duplicateCurrentChat, exportChat } = useChatHistory();
   const menuRef = useRef<HTMLDivElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
-  const [open, setOpen] = useState(false);
+  const isOpen = useStore(sidebarOpen); // Use store for open state
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const profile = useStore(profileStore);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const isSmallScreen = useViewport(640); // Tailwind's sm breakpoint
+
+  const menuVariants = {
+    closed: {
+      opacity: 0,
+      visibility: 'hidden' as 'hidden', // Type assertion
+      left: isSmallScreen ? '-100%' : '-340px',
+      transition: {
+        duration: 0.2,
+        ease: cubicEasingFn,
+      },
+    },
+    open: {
+      opacity: 1,
+      visibility: 'initial' as 'initial', // Type assertion
+      left: 0,
+      transition: {
+        duration: 0.2,
+        ease: cubicEasingFn,
+      },
+    },
+  } satisfies Variants;
 
   const { filteredItems: filteredList, handleSearchChange } = useSearchFilter({
     items: list,
@@ -262,46 +266,51 @@ export const Menu = () => {
   }, [filteredList]); // Depends only on filteredList
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       loadEntries();
     }
-  }, [open, loadEntries]);
+  }, [isOpen, loadEntries]);
 
   // Exit selection mode when sidebar is closed
   useEffect(() => {
-    if (!open && selectionMode) {
+    if (!isOpen && selectionMode) {
       /*
        * Don't clear selection state anymore when sidebar closes
        * This allows the selection to persist when reopening the sidebar
        */
       console.log('Sidebar closed, preserving selection state');
     }
-  }, [open, selectionMode]);
+  }, [isOpen, selectionMode]);
 
   useEffect(() => {
     const enterThreshold = 40;
     const exitThreshold = 40;
 
-    function onMouseMove(event: MouseEvent) {
-      if (isSettingsOpen) {
-        return;
+    // Only run mouse move listener on larger screens, allow touch toggle for smaller.
+    // This logic might need refinement based on desired UX (e.g., disable mousemove if explicitly closed via button).
+    if (!isSmallScreen) {
+      function onMouseMove(event: MouseEvent) {
+        if (isSettingsOpen) {
+          setSidebarOpen(false); // Close sidebar if settings are opened
+          return;
+        }
+
+        if (event.pageX < enterThreshold) {
+          setSidebarOpen(true);
+        }
+
+        if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
+          setSidebarOpen(false);
+        }
       }
 
-      if (event.pageX < enterThreshold) {
-        setOpen(true);
-      }
+      window.addEventListener('mousemove', onMouseMove);
 
-      if (menuRef.current && event.clientX > menuRef.current.getBoundingClientRect().right + exitThreshold) {
-        setOpen(false);
-      }
+      return () => {
+        window.removeEventListener('mousemove', onMouseMove);
+      };
     }
-
-    window.addEventListener('mousemove', onMouseMove);
-
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-    };
-  }, [isSettingsOpen]);
+  }, [isSettingsOpen, isSmallScreen, setSidebarOpen]); // Added setSidebarOpen to dependencies
 
   const handleDuplicate = async (id: string) => {
     await duplicateCurrentChat(id);
@@ -310,7 +319,7 @@ export const Menu = () => {
 
   const handleSettingsClick = () => {
     setIsSettingsOpen(true);
-    setOpen(false);
+    setSidebarOpen(false); // Close sidebar when settings are opened
   };
 
   const handleSettingsClose = () => {
@@ -327,9 +336,9 @@ export const Menu = () => {
       <motion.div
         ref={menuRef}
         initial="closed"
-        animate={open ? 'open' : 'closed'}
+        animate={isOpen ? 'open' : 'closed'} // Use isOpen from store
         variants={menuVariants}
-        style={{ width: '340px' }}
+        style={isSmallScreen ? { width: 'calc(100% - 40px)' } : { width: '340px' }} // Keep a small gap on very small screens
         className={classNames(
           'flex selection-accent flex-col side-menu fixed top-0 h-full',
           'bg-white dark:bg-gray-950 border-r border-gray-100 dark:border-gray-800/50',
@@ -383,11 +392,11 @@ export const Menu = () => {
               </button>
             </div>
             <div className="relative w-full">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+            <div className="absolute start-3 top-1/2 -translate-y-1/2">
                 <span className="i-ph:magnifying-glass h-4 w-4 text-gray-400 dark:text-gray-500" />
               </div>
               <input
-                className="w-full bg-gray-50 dark:bg-gray-900 relative pl-9 pr-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
+              className="w-full bg-gray-50 dark:bg-gray-900 relative ps-9 pe-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-800"
                 type="search"
                 placeholder="Search chats..."
                 onChange={handleSearchChange}
@@ -420,13 +429,14 @@ export const Menu = () => {
               </div>
             )}
             <DialogRoot open={dialogContent !== null}>
-              {binDates(filteredList).map(({ category, items }) => (
+              {/* History items rendering */}
+              {binDates(filteredList).map(({ category, items: dateGroupItems }) => ( // Renamed items to avoid conflict
                 <div key={category} className="mt-2 first:mt-0 space-y-1">
                   <div className="text-xs font-medium text-gray-500 dark:text-gray-400 sticky top-0 z-1 bg-white dark:bg-gray-950 px-4 py-1">
                     {category}
                   </div>
                   <div className="space-y-0.5 pr-1">
-                    {items.map((item) => (
+                    {dateGroupItems.map((item) => (
                       <HistoryItem
                         key={item.id}
                         item={item}
@@ -446,82 +456,36 @@ export const Menu = () => {
                   </div>
                 </div>
               ))}
-              <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
-                {dialogContent?.type === 'delete' && (
-                  <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Chat?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
-                        <p>
-                          You are about to delete{' '}
-                          <span className="font-medium text-gray-900 dark:text-white">
-                            {dialogContent.item.description}
-                          </span>
-                        </p>
-                        <p className="mt-2">Are you sure you want to delete this chat?</p>
-                      </DialogDescription>
-                    </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-                      <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
-                      </DialogButton>
-                      <DialogButton
-                        type="danger"
-                        onClick={(event) => {
+              {/* Dialog rendering with lazy loaded content */}
+              {dialogContent !== null && (
+                <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
+                  <Suspense fallback={<div className="p-6">Loading...</div>}>
+                    {dialogContent.type === 'delete' && (
+                      <LazyDeleteChatDialogContent
+                        item={dialogContent.item}
+                        onClose={closeDialog}
+                        onConfirm={(event) => {
                           console.log('Dialog delete button clicked for item:', dialogContent.item);
                           deleteItem(event, dialogContent.item);
                           closeDialog();
                         }}
-                      >
-                        Delete
-                      </DialogButton>
-                    </div>
-                  </>
-                )}
-                {dialogContent?.type === 'bulkDelete' && (
-                  <>
-                    <div className="p-6 bg-white dark:bg-gray-950">
-                      <DialogTitle className="text-gray-900 dark:text-white">Delete Selected Chats?</DialogTitle>
-                      <DialogDescription className="mt-2 text-gray-600 dark:text-gray-400">
-                        <p>
-                          You are about to delete {dialogContent.items.length}{' '}
-                          {dialogContent.items.length === 1 ? 'chat' : 'chats'}:
-                        </p>
-                        <div className="mt-2 max-h-32 overflow-auto border border-gray-100 dark:border-gray-800 rounded-md bg-gray-50 dark:bg-gray-900 p-2">
-                          <ul className="list-disc pl-5 space-y-1">
-                            {dialogContent.items.map((item) => (
-                              <li key={item.id} className="text-sm">
-                                <span className="font-medium text-gray-900 dark:text-white">{item.description}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <p className="mt-3">Are you sure you want to delete these chats?</p>
-                      </DialogDescription>
-                    </div>
-                    <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-                      <DialogButton type="secondary" onClick={closeDialog}>
-                        Cancel
-                      </DialogButton>
-                      <DialogButton
-                        type="danger"
-                        onClick={() => {
-                          /*
-                           * Pass the current selectedItems to the delete function.
-                           * This captures the state at the moment the user confirms.
-                           */
+                      />
+                    )}
+                    {dialogContent.type === 'bulkDelete' && (
+                      <LazyBulkDeleteChatDialogContent
+                        items={dialogContent.items}
+                        onClose={closeDialog}
+                        onConfirm={() => {
                           const itemsToDeleteNow = [...selectedItems];
                           console.log('Bulk delete confirmed for', itemsToDeleteNow.length, 'items', itemsToDeleteNow);
                           deleteSelectedItems(itemsToDeleteNow);
                           closeDialog();
                         }}
-                      >
-                        Delete
-                      </DialogButton>
-                    </div>
-                  </>
-                )}
-              </Dialog>
+                      />
+                    )}
+                  </Suspense>
+                </Dialog>
+              )}
             </DialogRoot>
           </div>
           <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 px-4 py-3">
@@ -531,7 +495,11 @@ export const Menu = () => {
         </div>
       </motion.div>
 
-      <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+      {isSettingsOpen && ( // Conditionally render Suspense and ControlPanel
+        <Suspense fallback={<div className="fixed inset-0 bg-black/50 z-[90] flex items-center justify-center text-white">Loading Settings...</div>}>
+          <ControlPanel open={isSettingsOpen} onClose={handleSettingsClose} />
+        </Suspense>
+      )}
     </>
   );
 };

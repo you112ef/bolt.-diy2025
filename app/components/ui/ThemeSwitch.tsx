@@ -19,7 +19,13 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
     domLoaded && (
       <IconButton
         className={className}
-        icon={theme === 'dark' ? 'i-ph-sun-dim-duotone' : 'i-ph-moon-stars-duotone'}
+        icon={
+          theme === 'light'
+            ? 'i-ph-moon-stars-duotone' // Moon icon to switch to Dark mode
+            : theme === 'dark'
+              ? 'i-ph:paint-brush-broad-duotone' // OLED/Paint icon to switch to OLED mode
+              : 'i-ph-sun-dim-duotone' // Sun icon to switch to Light mode
+        }
         size="xl"
         title="Toggle Theme"
         onClick={toggleTheme}

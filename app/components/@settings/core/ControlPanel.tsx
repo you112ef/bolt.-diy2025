@@ -23,21 +23,23 @@ import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
 import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
 import BackgroundRays from '~/components/ui/BackgroundRays';
+import React, { Suspense, lazy } from 'react'; // Import React, Suspense and lazy
 
-// Import all tab components
-import ProfileTab from '~/components/@settings/tabs/profile/ProfileTab';
-import SettingsTab from '~/components/@settings/tabs/settings/SettingsTab';
-import NotificationsTab from '~/components/@settings/tabs/notifications/NotificationsTab';
-import FeaturesTab from '~/components/@settings/tabs/features/FeaturesTab';
-import { DataTab } from '~/components/@settings/tabs/data/DataTab';
-import DebugTab from '~/components/@settings/tabs/debug/DebugTab';
-import { EventLogsTab } from '~/components/@settings/tabs/event-logs/EventLogsTab';
-import UpdateTab from '~/components/@settings/tabs/update/UpdateTab';
-import ConnectionsTab from '~/components/@settings/tabs/connections/ConnectionsTab';
-import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/CloudProvidersTab';
-import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
-import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
-import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
+// Lazy load all tab components
+const ProfileTab = lazy(() => import('~/components/@settings/tabs/profile/ProfileTab'));
+const SettingsTab = lazy(() => import('~/components/@settings/tabs/settings/SettingsTab'));
+const NotificationsTab = lazy(() => import('~/components/@settings/tabs/notifications/NotificationsTab'));
+const FeaturesTab = lazy(() => import('~/components/@settings/tabs/features/FeaturesTab'));
+const DataTab = lazy(() => import('~/components/@settings/tabs/data/DataTab'));
+const DebugTab = lazy(() => import('~/components/@settings/tabs/debug/DebugTab'));
+const EventLogsTab = lazy(() => import('~/components/@settings/tabs/event-logs/EventLogsTab'));
+const UpdateTab = lazy(() => import('~/components/@settings/tabs/update/UpdateTab'));
+const ConnectionsTab = lazy(() => import('~/components/@settings/tabs/connections/ConnectionsTab'));
+const CloudProvidersTab = lazy(() => import('~/components/@settings/tabs/providers/cloud/CloudProvidersTab'));
+const ServiceStatusTab = lazy(() => import('~/components/@settings/tabs/providers/status/ServiceStatusTab'));
+const LocalProvidersTab = lazy(() => import('~/components/@settings/tabs/providers/local/LocalProvidersTab'));
+const TaskManagerTab = lazy(() => import('~/components/@settings/tabs/task-manager/TaskManagerTab'));
+// TabManagement is small, can be kept eager. If it grows, it can be made lazy too.
 
 interface ControlPanelProps {
   open: boolean;
@@ -512,37 +514,39 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
                     transition={{ duration: 0.2 }}
                     className="p-6"
                   >
-                    {showTabManagement ? (
-                      <TabManagement />
-                    ) : activeTab ? (
-                      getTabComponent(activeTab)
-                    ) : (
-                      <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
-                        variants={gridLayoutVariants}
-                        initial="hidden"
-                        animate="visible"
-                      >
-                        <AnimatePresence mode="popLayout">
-                          {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
-                            <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
-                              <TabTile
-                                tab={tab}
-                                onClick={() => handleTabClick(tab.id as TabType)}
-                                isActive={activeTab === tab.id}
-                                hasUpdate={getTabUpdateStatus(tab.id)}
-                                statusMessage={getStatusMessage(tab.id)}
-                                description={TAB_DESCRIPTIONS[tab.id]}
-                                isLoading={loadingTab === tab.id}
-                                className="h-full relative"
-                              >
-                                {BETA_TABS.has(tab.id) && <BetaLabel />}
-                              </TabTile>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </motion.div>
-                    )}
+                    <Suspense fallback={<div className="flex items-center justify-center h-full text-bolt-elements-textSecondary"><div className="i-svg-spinners:90-ring-with-bg w-8 h-8" /> Loading tab...</div>}>
+                      {showTabManagement ? (
+                        <TabManagement />
+                      ) : activeTab ? (
+                        getTabComponent(activeTab)
+                      ) : (
+                        <motion.div
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative"
+                          variants={gridLayoutVariants}
+                          initial="hidden"
+                          animate="visible"
+                        >
+                          <AnimatePresence mode="popLayout">
+                            {(visibleTabs as TabWithDevType[]).map((tab: TabWithDevType) => (
+                              <motion.div key={tab.id} layout variants={itemVariants} className="aspect-[1.5/1]">
+                                <TabTile
+                                  tab={tab}
+                                  onClick={() => handleTabClick(tab.id as TabType)}
+                                  isActive={activeTab === tab.id}
+                                  hasUpdate={getTabUpdateStatus(tab.id)}
+                                  statusMessage={getStatusMessage(tab.id)}
+                                  description={TAB_DESCRIPTIONS[tab.id]}
+                                  isLoading={loadingTab === tab.id}
+                                  className="h-full relative"
+                                >
+                                  {BETA_TABS.has(tab.id) && <BetaLabel />}
+                                </TabTile>
+                              </motion.div>
+                            ))}
+                          </AnimatePresence>
+                        </motion.div>
+                      )}
+                    </Suspense>
                   </motion.div>
                 </div>
               </div>

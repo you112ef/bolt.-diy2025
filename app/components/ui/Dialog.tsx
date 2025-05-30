@@ -130,7 +130,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
               <RadixDialog.Close asChild onClick={onClose}>
                 <IconButton
                   icon="i-ph:x"
-                  className="absolute top-3 right-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
+                  className="absolute top-3 end-3 text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary"
                 />
               </RadixDialog.Close>
             )}
@@ -227,7 +227,7 @@ export function ConfirmationDialog({
             >
               {isLoading ? (
                 <>
-                  <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 mr-2" />
+                  <div className="i-ph-spinner-gap-bold animate-spin w-4 h-4 me-2" />
                   {confirmLabel}
                 </>
               ) : (
@@ -405,7 +405,7 @@ export function SelectionDialog({
             </div>
 
             <div
-              className="pr-2 border rounded-md border-bolt-elements-borderColor bg-bolt-elements-bg-depth-2"
+              className="ps-2 border rounded-md border-bolt-elements-borderColor bg-bolt-elements-bg-depth-2"
               style={{
                 maxHeight,
               }}

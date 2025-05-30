@@ -85,7 +85,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         </div>
 
         {isDropdownOpen && (
-          <div className="absolute right-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
+          <div className="absolute end-2 flex flex-col gap-1 z-50 p-1 mt-1 min-w-[13.5rem] bg-bolt-elements-background-depth-2 rounded-md shadow-lg bg-bolt-elements-backgroundDefault border border-bolt-elements-borderColor">
             <Button
               active
               onClick={() => {
@@ -96,6 +96,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative"
             >
               <img
+                loading="lazy"
                 className="w-5 h-5"
                 height="24"
                 width="24"
@@ -117,6 +118,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
               className="flex items-center w-full px-4 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundActive gap-2 rounded-md group relative"
             >
               <img
+                loading="lazy"
                 className="w-5 h-5 bg-black p-1 rounded"
                 height="24"
                 width="24"
@@ -134,6 +136,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             >
               <span className="sr-only">Coming Soon</span>
               <img
+                loading="lazy"
                 className="w-5 h-5"
                 height="24"
                 width="24"

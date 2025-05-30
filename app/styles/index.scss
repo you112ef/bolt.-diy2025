@@ -7,6 +7,14 @@
 @use 'components/editor.scss';
 @use 'components/toast.scss';
 
+html[lang="ar"] {
+  direction: rtl;
+}
+
+html[lang="ar"] .i-ph\:caret-right {
+  transform: scaleX(-1);
+}
+
 html,
 body {
   height: 100%;
