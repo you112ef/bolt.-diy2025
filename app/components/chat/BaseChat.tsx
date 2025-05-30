@@ -46,7 +46,6 @@ import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { CustomPromptInput } from './CustomPromptInput';
 import { customPromptStore, setCustomPrompt, clearCustomPrompt } from '~/lib/stores/customPrompt';
-// Removed redundant React import: import React, { Suspense, lazy } from 'react'; 
 
 // Lazy load ExpoQrModal
 const ExpoQrModal = lazy(() => import('~/components/workbench/ExpoQrModal'));
