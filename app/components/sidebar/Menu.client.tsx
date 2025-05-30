@@ -12,7 +12,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
 import { useSearchFilter } from '~/lib/hooks/useSearchFilter';
-import { useViewport } from '~/lib/hooks'; // Import useViewport
+import useViewport from '~/lib/hooks'; // Changed to default import
 import { classNames } from '~/utils/classNames';
 import { useStore } from '@nanostores/react';
 import { profileStore } from '~/lib/stores/profile';

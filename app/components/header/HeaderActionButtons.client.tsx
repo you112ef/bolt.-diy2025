@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import useViewport from '~/lib/hooks';
+import useViewport from '~/lib/hooks'; // Ensure this is a default import
 import { chatStore } from '~/lib/stores/chat';
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { vercelConnection } from '~/lib/stores/vercel';
