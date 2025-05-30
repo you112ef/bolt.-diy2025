@@ -3,7 +3,8 @@
  * Preventing TS checks with files presented in the video for a better presentation.
  */
 import type { JSONValue, Message } from 'ai';
-import React, { type RefCallback, useEffect, useState } from 'react';
+// Merged Suspense and lazy into the first React import
+import React, { type RefCallback, useEffect, useState, Suspense, lazy } from 'react'; 
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { IconButton } from '~/components/ui/IconButton';
@@ -45,7 +46,7 @@ import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { CustomPromptInput } from './CustomPromptInput';
 import { customPromptStore, setCustomPrompt, clearCustomPrompt } from '~/lib/stores/customPrompt';
-import React, { Suspense, lazy } from 'react'; // Added React, Suspense, lazy for ExpoQrModal
+// Removed redundant React import: import React, { Suspense, lazy } from 'react'; 
 
 // Lazy load ExpoQrModal
 const ExpoQrModal = lazy(() => import('~/components/workbench/ExpoQrModal'));
