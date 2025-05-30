@@ -4,7 +4,8 @@
  */
 import type { JSONValue, Message } from 'ai';
 // Merged Suspense and lazy into the first React import
-import React, { type RefCallback, useEffect, useState, Suspense, lazy } from 'react'; 
+import React, { type RefCallback, useEffect, useState, Suspense, lazy } from 'react';
+import ExpoQrModal from './LazyExpoQrModal'; // Import the new lazy-loaded wrapper
 import { ClientOnly } from 'remix-utils/client-only';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { IconButton } from '~/components/ui/IconButton';
@@ -40,15 +41,15 @@ import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { SupabaseConnection } from './SupabaseConnection';
-// Removed static import: import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+// Ensure any original static import of ExpoQrModal is removed here
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { CustomPromptInput } from './CustomPromptInput';
 import { customPromptStore, setCustomPrompt, clearCustomPrompt } from '~/lib/stores/customPrompt';
 
-// Lazy load ExpoQrModal
-const ExpoQrModal = lazy(() => import('~/components/workbench/ExpoQrModal'));
+// Removed the direct lazy load of ExpoQrModal from here
+// const ExpoQrModal = lazy(() => import('~/components/workbench/ExpoQrModal'));
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
