@@ -8,6 +8,7 @@ $code-font-size: 13px;
 }
 
 .MarkdownContent {
+  @apply text-sm sm:text-base; /* Responsive base font size */
   line-height: 1.6;
   color: var(--bolt-elements-textPrimary);
 

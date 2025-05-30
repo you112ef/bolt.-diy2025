@@ -159,7 +159,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             }
           }}
         >
-          <div className="i-bolt:chat text-sm" />
+          <div className="i-bolt:chat text-lg" /> {/* Changed from text-sm to text-lg */}
         </Button>
         <div className="w-[1px] bg-bolt-elements-borderColor" />
         <Button
@@ -172,7 +172,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             workbenchStore.showWorkbench.set(!showWorkbench);
           }}
         >
-          <div className="i-ph:code-bold" />
+          <div className="i-ph:code-bold text-lg" /> {/* Added text-lg, assuming it was default/base before */}
         </Button>
       </div>
     </div>

@@ -440,23 +440,23 @@ export default function LocalProvidersTab() {
             >
               {/* Provider Header */}
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3 sm:gap-4">
                   <motion.div
                     className={classNames(
-                      'w-12 h-12 flex items-center justify-center rounded-xl',
+                        'w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl', // Responsive icon container
                       'bg-bolt-elements-background-depth-3',
                       provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
                     )}
                     whileHover={{ scale: 1.1, rotate: 5 }}
                   >
                     {React.createElement(PROVIDER_ICONS[provider.name as ProviderName] || BsRobot, {
-                      className: 'w-7 h-7',
+                        className: 'w-6 h-6 sm:w-7 sm:h-7', // Responsive icon
                       'aria-label': `${provider.name} icon`,
                     })}
                   </motion.div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-md font-semibold text-bolt-elements-textPrimary">{provider.name}</h3>
+                        <h3 className="text-base sm:text-md font-semibold text-bolt-elements-textPrimary">{provider.name}</h3> {/* Responsive title */}
                       <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-500">Local</span>
                     </div>
                     <p className="text-sm text-bolt-elements-textSecondary mt-1">
@@ -652,20 +652,20 @@ export default function LocalProvidersTab() {
                     <div className="flex items-start gap-4">
                       <motion.div
                         className={classNames(
-                          'w-12 h-12 flex items-center justify-center rounded-xl',
+                        'w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl', // Responsive icon container
                           'bg-bolt-elements-background-depth-3',
                           provider.settings.enabled ? 'text-purple-500' : 'text-bolt-elements-textSecondary',
                         )}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                       >
                         {React.createElement(PROVIDER_ICONS[provider.name as ProviderName] || BsRobot, {
-                          className: 'w-7 h-7',
+                        className: 'w-6 h-6 sm:w-7 sm:h-7', // Responsive icon
                           'aria-label': `${provider.name} icon`,
                         })}
                       </motion.div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-md font-semibold text-bolt-elements-textPrimary">{provider.name}</h3>
+                        <h3 className="text-base sm:text-md font-semibold text-bolt-elements-textPrimary">{provider.name}</h3> {/* Responsive title */}
                           <div className="flex gap-1">
                             <span className="px-2 py-0.5 text-xs rounded-full bg-green-500/10 text-green-500">
                               Local

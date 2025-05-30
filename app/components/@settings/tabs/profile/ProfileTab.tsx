@@ -68,7 +68,7 @@ export default function ProfileTab() {
           <div className="flex items-start gap-6 mb-8">
             <div
               className={classNames(
-                'w-24 h-24 rounded-full overflow-hidden',
+                'w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden', // Responsive size
                 'bg-gray-100 dark:bg-gray-800/50',
                 'flex items-center justify-center',
                 'ring-1 ring-gray-200 dark:ring-gray-700',
@@ -90,7 +90,7 @@ export default function ProfileTab() {
                   )}
                 />
               ) : (
-                <div className="i-ph:robot-fill w-16 h-16 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-purple-500/70 transform -translate-y-1" />
+                <div className="i-ph:robot-fill w-12 h-12 sm:w-16 sm:h-16 text-gray-400 dark:text-gray-500 transition-colors group-hover:text-purple-500/70 transform -translate-y-1" /> // Responsive icon placeholder
               )}
 
               <label
