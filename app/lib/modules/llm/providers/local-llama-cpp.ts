@@ -145,90 +145,28 @@ export default class LocalLlamaCppProvider extends BaseProvider {
             throw new Error(`LocalLLaMA API request failed with status ${response.status}: ${errorBody.message || JSON.stringify(errorBody)}`);
           }
 
-          if (mode === 'stream') {
-            // Streaming implementation (complex, requires parsing Server-Sent Events)
-            // For now, let's throw an error indicating it's not yet supported, or adapt a simple non-streaming path.
-            // To fully implement, we'd need to return an AsyncIterable<ExperimentalMessageChunk>
-            // For simplicity in this step, we'll try to read the full response if stream was requested but not fully handled.
-            // This is NOT a proper stream handling.
-             if (!response.body) {
-                throw new Error('Response body is null for streaming request.');
-            }
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullContent = "";
-            let usage: { promptTokens: number, completionTokens: number, totalTokens: number } = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-            let finishReason: any = 'stop';
-
-            // This is a makeshift stream reader for non-compliant OpenAI stream from basic llama-server if it doesn't do SSE properly for non-streaming clients
-            // A proper SSE parser is needed for true streaming.
-            // Example: llama.cpp server with --stream will send SSE. Without it, it sends a JSON.
-            // If payload.stream was true, and server supports SSE:
-            // For now, we'll assume if mode === 'stream', we'll just collect the whole JSON response if it's not SSE
-            // THIS PART IS A HACK for initial testing if proper streaming isn't set up.
-            // Ideally, the server would send SSE if stream: true, or a single JSON if stream: false.
-            // Assuming llama-server sends a single JSON if stream:false, and SSE if stream:true.
-            // The code below will only work correctly for stream:false or if stream:true results in a single JSON (incorrect server behavior).
-
-            const responseData = await response.json();
-            console.log("LocalLLaMA Raw Response Data:", responseData);
-
-            if (responseData.choices && responseData.choices.length > 0) {
-                fullContent = responseData.choices[0].message?.content || "";
-                finishReason = responseData.choices[0].finish_reason || 'stop';
-            }
-            if (responseData.usage) {
-                usage = { 
-                    promptTokens: responseData.usage.prompt_tokens || 0, 
-                    completionTokens: responseData.usage.completion_tokens || 0, 
-                    totalTokens: responseData.usage.total_tokens || 0
-                };
-            }
+          // Since payload.stream is forced to false, we always expect a single JSON response.
+          // The original 'mode' from useChat options is effectively ignored for now regarding server communication type.
+          
+          const responseData = await response.json();
+          console.log("LocalLLaMA Full Response (Forced Non-Streaming):", responseData);
             
-            // This is NOT how streaming works. This is a fallback for initial test.
-            // For actual streaming, you'd yield chunks.
-            // The Vercel AI SDK expects an AsyncIterable<OpenAIStreamChunk> or similar.
-            // If mode was 'stream' but we forced payload.stream = false, we'd get a single JSON.
-            // If proper streaming is implemented, this whole block needs to change.
-            // For now, this 'if' block handles the case where payload.stream was true,
-            // but we are only implementing the non-streaming response handling.
-            // This will effectively make all calls non-streaming for now.
-             const responseData = await response.json(); // Assuming server sends full JSON if stream:false
-             console.log("LocalLLaMA Full Response (Forced Non-Streaming):", responseData);
+          const messageContent = responseData.choices?.[0]?.message?.content || '';
+          const finishReasonData = responseData.choices?.[0]?.finish_reason || 'stop';
+          const usageData = responseData.usage ? {
+              promptTokens: responseData.usage.prompt_tokens || 0,
+              completionTokens: responseData.usage.completion_tokens || 0,
+              totalTokens: responseData.usage.total_tokens || 0,
+          } : { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
 
-            const messageContent = responseData.choices?.[0]?.message?.content || '';
-            const finishReasonData = responseData.choices?.[0]?.finish_reason || 'stop';
-            const usageData = responseData.usage ? {
-                promptTokens: responseData.usage.prompt_tokens || 0,
-                completionTokens: responseData.usage.completion_tokens || 0,
-                totalTokens: responseData.usage.total_tokens || 0,
-            } : { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-
-            return {
-              messages: [{ role: 'assistant', content: messageContent }],
-              finishReason: finishReasonData,
-              usage: usageData,
-            };
-            // End of temporary non-streaming handling for 'stream' mode.
-
-          } else { // mode === 'object' (non-streaming) - this path will now be taken.
-            const responseData = await response.json();
-            console.log("LocalLLaMA Full Response (Non-Streaming):", responseData);
-            
-            const messageContent = responseData.choices?.[0]?.message?.content || '';
-            const finishReasonData = responseData.choices?.[0]?.finish_reason || 'stop';
-            const usageData = responseData.usage ? {
-                promptTokens: responseData.usage.prompt_tokens || 0,
-                completionTokens: responseData.usage.completion_tokens || 0,
-                totalTokens: responseData.usage.total_tokens || 0,
-            } : { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
-
-            return {
-              messages: [{ role: 'assistant', content: messageContent }],
-              finishReason: finishReasonData,
-              usage: usageData,
-            };
-          }
+          // Regardless of original 'mode', return the non-streaming structure.
+          // The Vercel AI SDK's useChat hook will handle this. If it was expecting a stream,
+          // it will treat this single complete response as the full stream.
+          return {
+            messages: [{ role: 'assistant', content: messageContent }],
+            finishReason: finishReasonData,
+            usage: usageData,
+          };
 
         } catch (error) {
           console.error('LocalLLaMA request failed:', error);
