@@ -40,7 +40,7 @@ import type { ActionRunner } from '~/lib/runtime/action-runner';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { SupabaseConnection } from './SupabaseConnection';
-import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+// Removed static import: import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
