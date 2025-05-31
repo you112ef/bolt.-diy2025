@@ -5,6 +5,9 @@
 import { useStore } from '@nanostores/react';
 import type { Message } from 'ai';
 import { useChat } from 'ai/react';
+import { nanoid } from 'nanoid';
+import { useConnectionStatus } from '~/lib/hooks/useConnectionStatus';
+import { initializeOfflineLlm, getOfflineCompletion } from '~/lib/llm/offline/wllama';
 import { useAnimate } from 'framer-motion';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
@@ -132,6 +135,46 @@ export const ChatImpl = memo(
     );
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
+    const { isOffline, currentIssue } = useConnectionStatus(); // currentIssue might be useful for more specific messages if needed
+    const prevIsOfflineRef = useRef<boolean | undefined>(undefined);
+
+    useEffect(() => {
+      // Display toast notifications when isOffline status changes
+      const wasOffline = prevIsOfflineRef.current;
+      prevIsOfflineRef.current = isOffline;
+
+      if (isOffline) {
+        toast.dismiss('online-status'); // Dismiss any "online" toast
+        // Only show if not already active, or if it was previously online
+        if (!toast.isActive('offline-status') || wasOffline === false) {
+          toast.info("You are offline. AI responses will be generated locally.", {
+            autoClose: false,
+            type: 'info',
+            toastId: 'offline-status',
+            closeButton: true, // Allow user to close it
+          });
+        }
+      } else { // isOnline
+        toast.dismiss('offline-status'); // Dismiss any "offline" toast
+        // Only show "back online" toast if it *was* offline previously
+        if (wasOffline === true) {
+             toast.success("You are back online. Using server AI.", {
+                autoClose: 3000,
+                type: 'success',
+                toastId: 'online-status',
+             });
+        }
+        // Optional: If app loads online initially (wasOffline === undefined) and no other toast is active,
+        // you could show a general "Connected" message, but it might be too noisy.
+        // For now, clearing the offline toast is sufficient.
+      }
+    }, [isOffline]);
+
+    useEffect(() => {
+      initializeOfflineLlm()
+        .then(() => console.log("Offline LLM initialized successfully"))
+        .catch((error) => console.error("Error initializing offline LLM:", error));
+    }, []);
 
     const [model, setModel] = useState(() => {
       const savedModel = Cookies.get('selectedModel');
@@ -163,6 +206,67 @@ export const ChatImpl = memo(
       setData,
     } = useChat({
       api: '/api/chat',
+      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (isOffline) {
+          console.log("App is offline, attempting to use offline LLM.");
+          if (!init?.body) {
+            console.error("Offline mode: No body found in request.");
+            return new Response(JSON.stringify({ error: 'Offline LLM failed: No body in request' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+          }
+
+          try {
+            const body = JSON.parse(init.body as string);
+            const userMessages = body.messages?.filter((m: Message) => m.role === 'user');
+            if (!userMessages || userMessages.length === 0) {
+              console.error("Offline mode: No user messages found in request body.");
+              return new Response(JSON.stringify({ error: 'Offline LLM failed: No user messages' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+            }
+            // Extract text from the last user message, supporting complex content
+            const lastUserMessage = userMessages[userMessages.length - 1];
+            let userPrompt = "";
+            if (typeof lastUserMessage.content === 'string') {
+              userPrompt = lastUserMessage.content;
+            } else if (Array.isArray(lastUserMessage.content)) {
+              const textPart = lastUserMessage.content.find(part => part.type === 'text');
+              if (textPart) {
+                userPrompt = textPart.text;
+              }
+            }
+
+            // Remove the [Model: ...] and [Provider: ...] prefixes if present
+            userPrompt = userPrompt.replace(/\[Model: [^\]]+\]\n\n/g, '').replace(/\[Provider: [^\]]+\]\n\n/g, '');
+
+
+            if (!userPrompt.trim()) {
+                console.error("Offline mode: Empty prompt after stripping prefixes.");
+                return new Response(JSON.stringify({ error: 'Offline LLM failed: Empty prompt' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+            }
+
+            console.log("Offline mode: Extracted prompt:", userPrompt);
+
+            const offlineResponse = await getOfflineCompletion(userPrompt);
+            console.log("Offline mode: Received response from offline LLM:", offlineResponse);
+
+            const stream = new ReadableStream({
+              start(controller) {
+                const textEncoder = new TextEncoder();
+                const messageId = nanoid();
+                // Ensure the content is properly stringified if it's an object,
+                // but here offlineResponse is expected to be a string.
+                const chunk = `0:"${JSON.stringify({ id: messageId, role: 'assistant', content: offlineResponse }).replace(/"/g, '\\"')}"\n`;
+                controller.enqueue(textEncoder.encode(chunk));
+                controller.close();
+              }
+            });
+            return new Response(stream, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          } catch (error: any) {
+            console.error("Offline LLM request failed:", error);
+            return new Response(JSON.stringify({ error: `Offline LLM failed: ${error.message || 'Unknown error'}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+          }
+        } else {
+          return fetch(input, init);
+        }
+      },
       body: {
         apiKeys,
         files,

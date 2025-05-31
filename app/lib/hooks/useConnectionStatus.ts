@@ -16,6 +16,7 @@ const getAcknowledgedIssue = (): string | null => {
 export const useConnectionStatus = () => {
   const [hasConnectionIssues, setHasConnectionIssues] = useState(false);
   const [currentIssue, setCurrentIssue] = useState<ConnectionIssueType>(null);
+  const [isOffline, setIsOffline] = useState(false); // New state variable
   const [acknowledgedIssue, setAcknowledgedIssue] = useState<string | null>(() => getAcknowledgedIssue());
 
   const checkStatus = async () => {
@@ -24,6 +25,7 @@ export const useConnectionStatus = () => {
       const issue = !status.connected ? 'disconnected' : status.latency > 1000 ? 'high-latency' : null;
 
       setCurrentIssue(issue);
+      setIsOffline(issue === 'disconnected'); // Update isOffline
 
       // Only show issues if they're new or different from the acknowledged one
       setHasConnectionIssues(issue !== null && issue !== acknowledgedIssue);
@@ -32,6 +34,7 @@ export const useConnectionStatus = () => {
 
       // Show connection issues if we can't even check the status
       setCurrentIssue('disconnected');
+      setIsOffline(true); // Update isOffline
       setHasConnectionIssues(true);
     }
   };
@@ -57,5 +60,5 @@ export const useConnectionStatus = () => {
     checkStatus();
   };
 
-  return { hasConnectionIssues, currentIssue, acknowledgeIssue, resetAcknowledgment };
+  return { hasConnectionIssues, currentIssue, acknowledgeIssue, resetAcknowledgment, isOffline }; // Return isOffline
 };
