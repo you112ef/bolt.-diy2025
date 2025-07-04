@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="appIconBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#appIconBg)"/>
+  <!-- Lightning bolt with glow -->
+  <g filter="url(#glow)">
+    <path d="M200 80L320 240H240L312 432L192 272H272L200 80Z" fill="white"/>
+  </g>
+  <!-- SH Text -->
+  <g fill="white" font-family="Inter, -apple-system, BlinkMacSystemFont, system-ui, sans-serif" font-weight="bold" font-size="120">
+    <text x="380" y="420" text-anchor="middle">SH</text>
+  </g>
+</svg>
