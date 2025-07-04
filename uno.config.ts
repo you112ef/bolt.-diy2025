@@ -47,6 +47,29 @@ const BASE_COLORS = {
     900: '#502D93',
     950: '#2D1959',
   },
+  violet: {
+    50: '#F8F5FF',
+    100: '#F0EBFF',
+    200: '#E1D6FF',
+    300: '#CEBEFF',
+    400: '#B69EFF',
+    500: '#a855f7',
+    600: '#9333ea',
+    700: '#7c3aed',
+    800: '#6b21a8',
+    900: '#581c87',
+    950: '#3b0764',
+  },
+  background: {
+    primary: '#0d0d0d',
+    secondary: '#0b0b0f',
+    input: '#1a1a1f',
+    border: '#2a2a2e',
+  },
+  text: {
+    main: '#e4e4e7',
+    secondary: '#a1a1aa',
+  },
   green: {
     50: '#F0FDF4',
     100: '#DCFCE7',
@@ -94,6 +117,7 @@ const COLOR_PRIMITIVES = {
     gray: generateAlphaPalette(BASE_COLORS.gray[900]),
     red: generateAlphaPalette(BASE_COLORS.red[500]),
     accent: generateAlphaPalette(BASE_COLORS.accent[500]),
+    violet: generateAlphaPalette(BASE_COLORS.violet[500]),
   },
 };
 
@@ -104,12 +128,12 @@ export default defineConfig({
     'transition-theme': 'transition-[background-color,border-color,color] duration-150 bolt-ease-cubic-bezier',
     kdb: 'bg-bolt-elements-code-background text-bolt-elements-code-text py-1 px-1.5 rounded-md',
     'max-w-chat': 'max-w-[var(--chat-max-width)]',
+    'violet-glow': 'shadow-[0_0_16px_rgba(168,85,247,0.3)]',
+    'violet-btn': 'bg-violet-600 hover:bg-violet-500 text-white px-4 py-2 rounded-md transition-colors',
+    'violet-input': 'w-full px-3 py-2 rounded-md bg-background-primary border border-background-border text-sm text-text-main placeholder-text-secondary',
+    'night-card': 'border border-background-border rounded-xl bg-background-input shadow-lg p-4',
   },
   rules: [
-    /**
-     * This shorthand doesn't exist in Tailwind and we overwrite it to avoid
-     * any conflicts with minified CSS classes.
-     */
     ['b', {}],
   ],
   theme: {
@@ -247,22 +271,6 @@ export default defineConfig({
   ],
 });
 
-/**
- * Generates an alpha palette for a given hex color.
- *
- * @param hex - The hex color code (without alpha) to generate the palette from.
- * @returns An object where keys are opacity percentages and values are hex colors with alpha.
- *
- * Example:
- *
- * ```
- * {
- *   '1': '#FFFFFF03',
- *   '2': '#FFFFFF05',
- *   '3': '#FFFFFF08',
- * }
- * ```
- */
 function generateAlphaPalette(hex: string) {
   return [1, 2, 3, 4, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].reduce(
     (acc, opacity) => {
